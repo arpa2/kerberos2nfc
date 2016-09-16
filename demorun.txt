@@ -1,0 +1,221 @@
+EXAMPLE SHELL SESSION TO RETRIEVE A TICKET AND ENCTICKETPART
+============================================================
+
+This is not a fullblown demonstration of kerberos2nfc yet; it does however
+show that the desired information can be extracted from Kerberos.  The
+necessary encryption has not been applied yet, nor the actual packaging
+in NDEF format; these are relatively simple actions.
+
+Note that the format of the generated information is nice, and as it ought
+to be under RFC4120.  That's a big concern out of the way.  Indeed, fetching
+a ticket to a service (or defaulting to the TGT) and producing its key
+material is quite possible.
+
+Don't think this is crackable though... by the time you read this, the
+temporary session key shown in the plain has already evaporated.  This is
+precisely the point of using Kerberos with NFC Tags, that it does not
+need the same level of scrutiny as a credential with an infinite life;
+the fixed nature of NFC Tags suddenly becomes endurable.  Of course we
+will in the end add encryption as well, because radio beacons should
+not be beaconing out unprotected secrets to anyone.
+
+
+shell$ kinit -l 15m rick@ARPA2.NET
+
+Password for rick@ARPA2.NET: 
+
+shell$ klist 
+Ticket cache: FILE:/tmp/krb5cc_0
+Default principal: rick@ARPA2.NET
+
+Valid starting     Expires            Service principal
+16/09/16 10:48:54  16/09/16 11:03:51  krbtgt/ARPA2.NET@ARPA2.NET
+
+shell$ ./ticket2ndef 
+
+-----BEGIN CLIENT PRINCIPAL-----
+NameType: 1
+Name_0: rick
+Realm: ARPA2.NET
+-----END CLIENT PRINCIPAL-----
+
+-----BEGIN SERVICE PRINCIPAL-----
+NameType: 0
+Name_0: krbtgt
+Name_1: ARPA2.NET
+Realm: ARPA2.NET
+-----END SERVICE PRINCIPAL-----
+
+-----BEGIN TICKET HEXDUMP-----
+61 82 01 34 30 82 01 30 a0 03 02 01 05 a1 0b 1b
+09 41 52 50 41 32 2e 4e 45 54 a2 1e 30 1c a0 03
+02 01 02 a1 15 30 13 1b 06 6b 72 62 74 67 74 1b
+09 41 52 50 41 32 2e 4e 45 54 a3 81 fb 30 81 f8
+a0 03 02 01 12 a1 03 02 01 01 a2 81 eb 04 81 e8
+d2 20 76 c9 bf b1 43 83 07 d8 7b 24 d6 57 7b 40
+3e a4 55 73 21 f9 f0 63 84 40 c5 32 16 15 23 e3
+59 72 e6 d4 03 17 27 83 09 6c a9 75 29 7f ea 92
+14 e5 d1 cc 69 22 32 6e 2f 57 9b c1 44 d0 d6 54
+0c 76 a3 39 64 5f f6 4a 8d db f0 9e c2 70 5e fd
+8e 1f e8 df 8c 9d 10 5e 20 f3 30 a2 ad ea 10 1c
+c0 e9 45 80 e0 3d fd f9 96 62 87 50 9d c6 30 81
+0e 8d 68 39 0c f3 e5 7c c6 2c 46 1f be ff 2f e0
+0a f9 a5 2b ee 44 6a 2b ae cb 31 30 0e ef 50 4f
+9f 27 a5 2b d4 c2 0f 04 ff 80 05 7f 53 61 dc 7e
+f6 75 47 92 84 0f b0 45 39 d8 0a 90 73 65 4a 04
+59 74 83 b6 92 3d 15 55 4d 11 89 df 1d 0e b0 ac
+ef 29 ad 3b e1 0f 30 3a 90 2a 52 4b ec be 3d b0
+a8 f5 eb 31 2a ca 10 a9 dd 7b d1 23 75 a4 41 c2
+6e 78 bd f4 22 21 fd 51
+-----END TICKET HEXDUMP-----
+
+-----BEGIN KEYDATA HEXDUMP-----
+63 81 9b 30 81 98 a0 04 03 02 00 00 a1 2b 30 29
+a0 03 02 01 12 a1 22 04 20 0f 19 f4 d9 f9 64 1a
+54 ae db e8 20 42 b3 bf 5d 5a e7 8f fb b2 ec 5e
+a7 01 98 8e f8 47 3a b1 f9 a2 0b 1b 09 41 52 50
+41 32 2e 4e 45 54 a3 11 30 0f a0 03 02 01 01 a1
+08 30 06 1b 04 72 69 63 6b a4 0b 30 09 a0 03 02
+01 ff a1 02 04 00 a5 1a 18 18 46 72 69 20 53 65
+70 20 31 36 20 31 30 3a 34 38 3a 35 34 20 32 30
+31 36 a7 1a 18 18 46 72 69 20 53 65 70 20 31 36
+20 31 31 3a 30 33 3a 35 31 20 32 30 31 36
+-----END KEYDATA HEXDUMP-----
+
+shell$ ./ticket2ndef xmpp/xmpp.arpa2.net@ARPA2.NET
+
+-----BEGIN CLIENT PRINCIPAL-----
+NameType: 1
+Name_0: rick
+Realm: ARPA2.NET
+-----END CLIENT PRINCIPAL-----
+
+-----BEGIN SERVICE PRINCIPAL-----
+NameType: 1
+Name_0: xmpp
+Name_1: xmpp.arpa2.net
+Realm: ARPA2.NET
+-----END SERVICE PRINCIPAL-----
+
+-----BEGIN TICKET HEXDUMP-----
+61 82 01 4c 30 82 01 48 a0 03 02 01 05 a1 0b 1b
+09 41 52 50 41 32 2e 4e 45 54 a2 21 30 1f a0 03
+02 01 01 a1 18 30 16 1b 04 78 6d 70 70 1b 0e 78
+6d 70 70 2e 61 72 70 61 32 2e 6e 65 74 a3 82 01
+0f 30 82 01 0b a0 03 02 01 12 a1 03 02 01 03 a2
+81 fe 04 81 fb 39 ef aa f6 c9 33 f4 22 ea 52 94
+ef a8 e0 de 8e 9b d5 3e 82 75 c5 9f 58 b3 a8 82
+ef b6 76 b8 bf 66 ea 23 c5 c3 70 5c 85 b0 b2 b5
+65 c6 4e 59 04 4a 2b 86 a3 be d9 c8 29 c3 44 de
+f4 8c e4 49 ba 92 00 13 b0 8d 3f 23 b9 41 88 3e
+7d 93 14 5c b2 aa aa 68 0d 32 08 54 97 7f 00 59
+96 2f c8 5a 64 52 6a da ca 74 a1 6f 46 06 ac ed
+b3 b0 f7 85 18 b3 11 12 84 2b 3a 66 b2 42 8b 28
+27 fb f7 82 5e a6 6d 91 21 b0 88 be ce 2e 1f aa
+89 c9 d0 5e d2 26 e9 99 fb 6b db af dd 0d 86 92
+c5 5f aa 7e 33 49 6a 52 12 60 de 30 86 cf 4e ad
+d2 cc 26 26 d8 5e 28 de d2 c5 d6 15 14 b5 5b 3b
+01 ee be 00 1e 47 be cf 06 74 b8 6d a9 47 1c 9b
+de 03 6f a8 ef 4a 48 69 64 69 e9 b6 49 f2 36 af
+8e 43 38 45 06 a3 4b 74 21 5b c7 ab 08 52 1a 77
+61 78 05 2c 5b 4b 90 bd aa 4f 74 aa 03 66 65 97
+-----END TICKET HEXDUMP-----
+
+-----BEGIN KEYDATA HEXDUMP-----
+63 81 b7 30 81 b4 a0 04 03 02 00 00 a1 2b 30 29
+a0 03 02 01 12 a1 22 04 20 b0 19 1d 73 4a 0b 34
+f3 8f 79 c3 32 46 d4 90 48 ef 66 55 73 89 a6 0b
+0e 6f 22 e8 b9 75 24 6b f6 a2 0b 1b 09 41 52 50
+41 32 2e 4e 45 54 a3 11 30 0f a0 03 02 01 01 a1
+08 30 06 1b 04 72 69 63 6b a4 0b 30 09 a0 03 02
+01 ff a1 02 04 00 a5 1a 18 18 46 72 69 20 53 65
+70 20 31 36 20 31 30 3a 34 38 3a 35 34 20 32 30
+31 36 a6 1a 18 18 46 72 69 20 53 65 70 20 31 36
+20 31 30 3a 34 39 3a 33 30 20 32 30 31 36 a7 1a
+18 18 46 72 69 20 53 65 70 20 31 36 20 31 31 3a
+30 33 3a 35 31 20 32 30 31 36
+-----END KEYDATA HEXDUMP-----
+
+shell$ ../hexio/hexin > /tmp/keydata.der
+
+00000000>63 81 b7 30 81 b4 a0 04 03 02 00 00 a1 2b 30 29
+00000010>a0 03 02 01 12 a1 22 04 20 b0 19 1d 73 4a 0b 34
+00000020>f3 8f 79 c3 32 46 d4 90 48 ef 66 55 73 89 a6 0b
+00000030>0e 6f 22 e8 b9 75 24 6b f6 a2 0b 1b 09 41 52 50
+00000040>41 32 2e 4e 45 54 a3 11 30 0f a0 03 02 01 01 a1
+00000050>08 30 06 1b 04 72 69 63 6b a4 0b 30 09 a0 03 02
+00000060>01 ff a1 02 04 00 a5 1a 18 18 46 72 69 20 53 65
+00000070>70 20 31 36 20 31 30 3a 34 38 3a 35 34 20 32 30
+00000080>31 36 a6 1a 18 18 46 72 69 20 53 65 70 20 31 36
+00000090>20 31 30 3a 34 39 3a 33 30 20 32 30 31 36 a7 1a
+000000a0>18 18 46 72 69 20 53 65 70 20 31 36 20 31 31 3a
+000000b0>30 33 3a 35 31 20 32 30 31 36
+000000ba> ^D
+
+shell$ derdump /tmp/keydata.der
+
+[APPLICATION 3]: tag 0x63 ##183 @0 ^0, Application, Constructed
+  SEQUENCE (OF): tag 0x30 ##180 @3 ^1, Universal, Constructed
+    [0]: tag 0xa0 #4 @6 ^2, Contextual, Constructed
+      BITSTRING: tag 0x03 #2 @8 ^3, Universal, Primitive
+         00 00 == ".."
+    [1]: tag 0xa1 #43 @12 ^2, Contextual, Constructed
+      SEQUENCE (OF): tag 0x30 #41 @14 ^3, Universal, Constructed
+        [0]: tag 0xa0 #3 @16 ^4, Contextual, Constructed
+          INTEGER: tag 0x02 #1 @18 ^5, Universal, Primitive
+             12 == 18
+        [1]: tag 0xa1 #34 @21 ^4, Contextual, Constructed
+          OCTETSTRING: tag 0x04 #32 @23 ^5, Universal, Primitive
+             b0 19 1d 73 4a 0b 34 f3 8f 79 c3 32 46 d4 90 48 ef 66 55 73 89 a6 0b 0e 6f 22 e8 b9 75 24 6b f6 == "...sJ.4..y.2F..H.fUs....o"..u$k."
+    [2]: tag 0xa2 #11 @57 ^2, Contextual, Constructed
+      GeneralString: tag 0x1b #9 @59 ^3, Universal, Primitive
+         41 52 50 41 32 2e 4e 45 54 == "ARPA2.NET"
+    [3]: tag 0xa3 #17 @70 ^2, Contextual, Constructed
+      SEQUENCE (OF): tag 0x30 #15 @72 ^3, Universal, Constructed
+        [0]: tag 0xa0 #3 @74 ^4, Contextual, Constructed
+          INTEGER: tag 0x02 #1 @76 ^5, Universal, Primitive
+             01 == 1
+        [1]: tag 0xa1 #8 @79 ^4, Contextual, Constructed
+          SEQUENCE (OF): tag 0x30 #6 @81 ^5, Universal, Constructed
+            GeneralString: tag 0x1b #4 @83 ^6, Universal, Primitive
+               72 69 63 6b == "rick"
+    [4]: tag 0xa4 #11 @89 ^2, Contextual, Constructed
+      SEQUENCE (OF): tag 0x30 #9 @91 ^3, Universal, Constructed
+        [0]: tag 0xa0 #3 @93 ^4, Contextual, Constructed
+          INTEGER: tag 0x02 #1 @95 ^5, Universal, Primitive
+             ff == 255
+        [1]: tag 0xa1 #2 @98 ^4, Contextual, Constructed
+          OCTETSTRING: tag 0x04 #0 @100 ^5, Universal, Primitive
+    [5]: tag 0xa5 #26 @102 ^2, Contextual, Constructed
+      GeneralizedTime: tag 0x18 #24 @104 ^3, Universal, Primitive
+         46 72 69 20 53 65 70 20 31 36 20 31 30 3a 34 38 3a 35 34 20 32 30 31 36 == "Fri Sep 16 10:48:54 2016"
+    [6]: tag 0xa6 #26 @130 ^2, Contextual, Constructed
+      GeneralizedTime: tag 0x18 #24 @132 ^3, Universal, Primitive
+         46 72 69 20 53 65 70 20 31 36 20 31 30 3a 34 39 3a 33 30 20 32 30 31 36 == "Fri Sep 16 10:49:30 2016"
+    [7]: tag 0xa7 #26 @158 ^2, Contextual, Constructed
+      GeneralizedTime: tag 0x18 #24 @160 ^3, Universal, Primitive
+         46 72 69 20 53 65 70 20 31 36 20 31 31 3a 30 33 3a 35 31 20 32 30 31 36 == "Fri Sep 16 11:03:51 2016"
+
+Note how this dump follows the ASN.1 spec, thanks to the Quick DER library:
+
+   EncTicketPart   ::= [APPLICATION 3] SEQUENCE {
+           flags                   [0] TicketFlags,
+           key                     [1] EncryptionKey,
+           crealm                  [2] Realm,
+           cname                   [3] PrincipalName,
+           transited               [4] TransitedEncoding,
+           authtime                [5] KerberosTime,
+           starttime               [6] KerberosTime OPTIONAL,
+           endtime                 [7] KerberosTime,
+           renew-till              [8] KerberosTime OPTIONAL,
+           caddr                   [9] HostAddresses OPTIONAL,
+           authorization-data      [10] AuthorizationData OPTIONAL
+   }
+
+There is no authorization-data available, so it is never included; there may
+be client address data (caddr) in the Ticket, not shown in this dump but it
+works.  Its use appears a bit limited though, once we start carrying around
+our NFC Tag with this information stored on it... or it could in fact be
+very powerful to constrain us to the one IPv6 address that our mobile
+provider gave us... ahem.
+
