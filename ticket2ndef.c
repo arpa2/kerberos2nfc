@@ -413,7 +413,8 @@ krb5_error_code make_keydata (krb5_context ctx, krb5_creds *crd, uint8_t **keyda
 					NULL);
 	*keydata = malloc (keydatalen);
 	if (*keydata == NULL) {
-		return ENOMEM;
+		kerrno = ENOMEM;
+		goto cleanup;
 	}
 	//
 	// Pack de DER data into the provisioned length
