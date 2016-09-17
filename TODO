@@ -1,4 +1,6 @@
-+ Extract Ticket and EncTicketData from Kerberos
-- Insert Ticket and EncTicketData back into Kerberos
-+ Actually encrypt the EncTicketPart data
-- Actually produce the NDEF object in an output format
++ ticket2ndef: Extract Ticket and EncTicketData from Kerberos
++ ticket2ndef: Actually encrypt the EncTicketPart data
++ ticket2ndef: Actually produce the NDEF object in an output format
+- ndef2ticket: Extract Ticket and encrypted EncTicketData from NDEF object
+- ndef2ticket: Decrypt the EncTicketData with a keytab entry
+- ndef2ticket: Insert Ticket and EncTicketData back into Kerberos

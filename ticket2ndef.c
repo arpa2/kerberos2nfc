@@ -587,15 +587,95 @@ cleanup:
 		krb5_free_principal (ctx, princ);
 		have_princ = 0;
 	}
-	if (kerrno != 0) {
-		const char *errmsg = krb5_get_error_message (ctx, kerrno);
-		fprintf (stderr, "FAILURE encrypting to %s: %s\n",
-					target, errmsg);
-		krb5_free_error_message (ctx, errmsg);
-	}
 	return kerrno;
 }
 
+
+/* Attach a blob to an NDEF object.  No processing is done but simply
+ * attaching the structure.  This is also used internally, for NDEF headers.
+ */
+krb5_error_code ndef_blob (dercursor *ndef, const dercursor *blob) {
+	uint8_t *newptr;
+	assert (blob->derptr != NULL);
+	newptr = realloc (ndef->derptr, ndef->derlen + blob->derlen);
+	if (newptr == NULL) {
+		return ENOMEM;
+	}
+	ndef->derptr = newptr;
+	memcpy (ndef->derptr + ndef->derlen, blob->derptr, blob->derlen);
+	ndef->derlen += blob->derlen;
+	return 0;
+}
+
+/* Attach an NDEF record to the NDEF object.  This consists of a descriptive
+ * header and a payload.
+ *  - The NDEF object to append to
+ *  - The payload to describe in this header
+ *  - The URI-style type of this payload
+ *  - The optional identifier for this payload, using NULL for no identifier
+ *  - A flag signalling that this is the first NDEF record
+ *  - A flag signalling that this is the last  NDEF record
+ */
+krb5_error_code ndef_record (dercursor *ndef, dercursor *payload, char *uritype, dercursor *opt_identifier, int first, int last) {
+	krb5_error_code kerrno = 0;
+	uint8_t hdr [7];
+	int pos = 0;
+	int shorty = payload->derlen <= 255;
+	dercursor tmp;
+	//
+	// Construct the flag field and size fields in the NDEF header
+	hdr [pos++] = 0x03 |
+			(first         ? 0x80 : 0x00) |
+			(last          ? 0x40 : 0x00) |
+			(shorty        ? 0x10 : 0x00) |
+			(opt_identifier? 0x08 : 0x00);
+	assert (strlen (uritype) <= 255);
+	hdr [pos++] = strlen (uritype);
+	if (shorty) {
+		hdr [pos++] = payload->derlen;
+	} else {
+		hdr [pos++] = (payload->derlen >> 24) & 0xff;
+		hdr [pos++] = (payload->derlen >> 16) & 0xff;
+		hdr [pos++] = (payload->derlen >>  8) & 0xff;
+		hdr [pos++] = (payload->derlen      ) & 0xff;
+	}
+	if (opt_identifier) {
+		assert (opt_identifier->derlen <= 255);
+		hdr [pos++] = opt_identifier->derlen;
+	}
+	tmp.derlen = pos;
+	tmp.derptr = hdr;
+	kerrno = ndef_blob (ndef, &tmp);
+	if (kerrno != 0) {
+		goto cleanup;
+	}
+	tmp.derlen = strlen (uritype);
+	tmp.derptr = uritype;
+	kerrno = ndef_blob (ndef, &tmp);
+	if (kerrno != 0) {
+		goto cleanup;
+	}
+	pos += tmp.derlen;
+	if (opt_identifier != NULL) {
+		kerrno = ndef_blob (ndef, opt_identifier);
+		if (kerrno != 0) {
+			goto cleanup;
+		}
+		pos += opt_identifier->derlen;
+	}
+	kerrno = ndef_blob (ndef, payload);
+	if (kerrno != 0) {
+		goto cleanup;
+	}
+	pos += payload->derlen;
+	//
+	// If an error occurred, cleanup what was written above; avoid if okay
+	pos = 0;
+cleanup:
+	ndef->derlen -= pos;
+	pos = 0;
+	return kerrno;
+}
 
 /* Main routine
  */
@@ -609,15 +689,29 @@ int main (int argc, char *argv []) {
 	dercursor encdata;
 	int have_ticket = 0;
 	int have_encdata = 0;
-	krb5_data *x509;
-	int have_x509 = 0;
+	dercursor ndef;
 	char *servicename = NULL;
 	int argi = 1;
+	int first = 1;
+	int last = 0;
 
 	//
-	// Parse commandline
+	// Parse commandline; for now, skip options, if any, until "--"
+	if (*argv [argi] == '-') {
+		do {
+			if (0 == strcmp (argv [argi], "--")) {
+				break;
+			}
+			fprintf (stderr, "No option processing yet; skipping \"%s\"\n", argv [argi]);
+			argi++;
+		} while (argi < argc);
+	}
 	if (argi >= argc) {
-		fprintf (stderr, "Usage: %s [servicename]\n", argv [0]);
+		fprintf (stderr, "Usage: %s [options [--]] service [target...] [-- service [target...]]... [--]\n", argv [0]);
+		fprintf (stderr, "Where: service is the principal identifier for a ticket to export\n");
+		fprintf (stderr, "       target is the key identifier of a recipient\n");
+		fprintf (stderr, "       -- separates blocks; first has none preceding, last has none following\n");
+		fprintf (stderr, "Options have not been implemented yet\n");
 		exit (1);
 	}
 	servicename = argv [argi++];
@@ -632,12 +726,25 @@ int main (int argc, char *argv []) {
 		kerrno = krb5_cc_default (ctx, &cache);
 		have_cache = (kerrno == 0);
 	}
+	memset (&ndef, 0, sizeof (ndef));
 
 	//
 	// Obtain a ticket
 	if (!kerrno) {
 		kerrno = find_ticket (ctx, cache, servicename, &ticket);
 		have_ticket = (kerrno == 0);
+	}
+
+	//
+	// Ship out to NDEF: Ticket
+	if (!kerrno) {
+		dercursor tkt;
+		assert (have_ticket);
+		last = (argi == argc);  // This can happen for bare tickets
+		tkt.derlen = ticket->ticket.length;
+		tkt.derptr = ticket->ticket.data;
+		kerrno = ndef_record (&ndef, &tkt, "urn:nfc:ext:arpa2.org:krb5:ticket", NULL, first, last);
+		first = 0;
 	}
 
 	//
@@ -649,20 +756,45 @@ int main (int argc, char *argv []) {
 	}
 
 	//
-	// Encrypt EncTicketData for each recipient provided
+	// Encrypt the EncTicketPart for each provided recipient
 	while ((!kerrno) && (argi < argc)) {
 		char *target = argv [argi++];
 		dercursor enckey;
 		assert (have_encdata);
-		kerrno = encrypt_keydata (ctx, target, &encdata, &enckey);
-		if (kerrno != 0) {
-			//ALREADY// fprintf (stderr, "FAILURE constructing encrypted data for %s\n", target);
+		if (0 == strcmp (target, "--")) {
+			fprintf (stderr, "TODO: Breaking off at first \"--\" service [target...]\n");
 			break;
 		}
-		if (errno == 0) {
+		kerrno = encrypt_keydata (ctx, target, &encdata, &enckey);
+		if (kerrno == 0) {
+			//
+			// Ship out to NDEF: EncTicketPart
+			assert (enckey.derptr != NULL);
+			last = (argi == argc);  // This can happen for bare tickets
+			kerrno = ndef_record (&ndef, &enckey, "urn:nfc:ext:arpa2.org:krb5:encticketpart:keytab", NULL, first, last);
+			first = 0;
+			//
+			// Cleanup for this loop passthrough
 			free (enckey.derptr);
 			enckey.derptr = NULL;
+		} else {
+			fprintf (stderr, "FAILURE constructing encrypted data for %s\n", target);
+			break;
 		}
+	}
+
+	//
+	// Dump the NDEF object in hexadecimal
+	if (kerrno == 0) {
+		assert (ndef.derlen > 0);
+		assert (ndef.derptr != NULL);
+		printf ("-----BEGIN NDEF HEXDUMP-----\n");
+		int i = 0;
+		while (i < ndef.derlen) {
+			char sep = (((i & 15) != 15) && (i != ndef.derlen - 1))? ' ': '\n';
+			printf ("%02x%c", (uint8_t) ndef.derptr [i++], sep);
+		}
+		printf ("-----END NDEF HEXDUMP-----\n");
 	}
 
 	//
@@ -671,6 +803,10 @@ int main (int argc, char *argv []) {
 		const char *errmsg = krb5_get_error_message (ctx, kerrno);
 		fprintf (stderr, "Error in Kerberos: %s\n", errmsg);
 		krb5_free_error_message (ctx, errmsg);
+	}
+	if (ndef.derptr != NULL) {
+		free (ndef.derptr);
+		ndef.derptr = NULL;
 	}
 	if (have_encdata) {
 		free (encdata.derptr);
