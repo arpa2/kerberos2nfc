@@ -47,6 +47,14 @@ const derwalk ticket_hostaddress [] = {
 	DER_PACK_END
 };
 
+/* The packaging description for EncryptedData, used to construct the keydata
+ * for a particular target.
+ */
+const derwalk ticket_encrypteddata [] = {
+	DER_PACK_rfc4120_EncryptedData,
+	DER_PACK_END
+};
+
 /* An empty SEQUENCE, used for the TransitedEncoding (at least for now).
  */
 dercursor der_empty_sequence = {
@@ -283,7 +291,7 @@ krb5_error_code find_ticket (krb5_context ctx, krb5_ccache cache, char *servicen
  * The keydata will be allocated in this function, and when it is returned
  * non-NULL, the caller must clean it up with malloc().
  */
-krb5_error_code make_keydata (krb5_context ctx, krb5_creds *crd, uint8_t **keydata) {
+krb5_error_code make_keydata (krb5_context ctx, krb5_creds *crd, dercursor *keydata) {
 	DER_OVLY_rfc4120_EncTicketPart kdcrs;
 	krb5_error_code kerrno = 0;
 	int numhostaddr = 0;
@@ -293,7 +301,8 @@ krb5_error_code make_keydata (krb5_context ctx, krb5_creds *crd, uint8_t **keyda
 	int i;
 	//
 	// Sanity checks & Initialisation
-	*keydata = NULL;
+	keydata->derptr = NULL;
+	keydata->derlen = 0;
 	memset (&kdcrs, 0, sizeof (kdcrs));
 	//
 	// Fill the various cursors in kdcrs that we intend to generate
@@ -411,23 +420,24 @@ krb5_error_code make_keydata (krb5_context ctx, krb5_creds *crd, uint8_t **keyda
 	size_t keydatalen = der_pack (ticket_encticketpart,
 					(dercursor *) &kdcrs,
 					NULL);
-	*keydata = malloc (keydatalen);
-	if (*keydata == NULL) {
+	keydata->derptr = malloc (keydatalen);
+	if (keydata->derptr == NULL) {
 		kerrno = ENOMEM;
 		goto cleanup;
 	}
+	keydata->derlen = keydatalen;
 	//
 	// Pack de DER data into the provisioned length
 	assert (keydatalen == der_pack (ticket_encticketpart,
 					(dercursor *) &kdcrs,
-					*keydata + keydatalen));
+					keydata->derptr + keydata->derlen));
 	//
 	// Dump the packed data on the screen
 	printf ("-----BEGIN KEYDATA HEXDUMP-----\n");
 	i = 0;
 	while (i < keydatalen) {
 		char sep = (((i & 15) != 15) && (i != keydatalen - 1))? ' ': '\n';
-		printf ("%02x%c", (uint8_t) (*keydata) [i++], sep);
+		printf ("%02x%c", (uint8_t) keydata->derptr [i++], sep);
 	}
 	printf ("-----END KEYDATA HEXDUMP-----\n");
 	//
@@ -449,6 +459,144 @@ cleanup:
 }
 
 
+krb5_error_code encrypt_keydata (krb5_context ctx, const char *target, const dercursor *plain, dercursor *crypt) {
+	krb5_error_code kerrno = 0;
+	krb5_principal princ = 0;
+	krb5_keytab kt;
+	krb5_keytab_entry ktent;
+	int have_princ = 0;
+	int have_kt = 0;
+	int have_ktent = 0;
+	int have_crypt5 = 0;
+	int have_encout = 0;
+	int have_enctotptr = 0;
+	krb5_data plain5;
+	krb5_enc_data crypt5;
+	size_t enctotlen = 0;
+	uint8_t *enctotptr = NULL;
+	memset (&plain5, 0, sizeof (plain5));
+	memset (&crypt5, 0, sizeof (crypt5));
+	//
+	// Initialisation and sanity checking
+	crypt->derlen = 0;
+	crypt->derptr = NULL;
+	//
+	// Find the key for the target keytab entry -- and the contained key
+	kerrno = krb5_parse_name (ctx, target, &princ);
+	have_princ = (kerrno == 0);
+	if (!have_princ) {
+		goto cleanup;
+	}
+	kerrno = krb5_kt_default (ctx, &kt);
+	have_kt = (kerrno == 0);
+	if (!have_kt) {
+		goto cleanup;
+	}
+	kerrno = krb5_kt_get_entry (ctx, kt, princ, 0, 0, &ktent);
+	have_ktent = (kerrno == 0);
+	if (!have_ktent) {
+		goto cleanup;
+	}
+	//
+	// Encrypt the plaintext to the key found in the keytab
+	plain5.length = plain->derlen;
+	plain5.data   = plain->derptr;
+	crypt5.enctype = ktent.key.enctype;
+	size_t enclen = 0;
+	kerrno = krb5_c_encrypt_length (ctx, crypt5.enctype, plain5.length, &enclen);
+	crypt5.ciphertext.length = enclen;
+	if ((kerrno == 0) && (crypt5.ciphertext.length != enclen)) {
+		kerrno = ERANGE;
+	}
+	if (kerrno != 0) {
+		goto cleanup;
+	}
+	crypt5.ciphertext.data = malloc (crypt5.ciphertext.length);
+	have_crypt5 = (crypt5.ciphertext.data != NULL);
+	if (!have_crypt5) {
+		goto cleanup;
+	}
+	kerrno = krb5_c_encrypt (ctx, &ktent.key, 2, NULL, &plain5, &crypt5);
+	have_encout = (kerrno == 0);
+	if (!have_encout) {
+		goto cleanup;
+	}
+	assert (crypt5.ciphertext.length <= enclen);
+	//
+	// Now package the outcome and annotations as EncryptedData
+	DER_OVLY_rfc4120_EncryptedData ed;
+	QDERBUF_INT32_T der_etype;
+	QDERBUF_UINT32_T der_kvno;
+	memset (&ed, 0, sizeof (ed));
+	ed.etype = qder2b_pack_int32 (der_etype, crypt5.enctype);
+	ed.kvno = qder2b_pack_uint32 (der_kvno, ktent.vno);
+	ed.cipher.derlen = enclen;
+	ed.cipher.derptr = crypt5.ciphertext.data;
+	enctotlen = der_pack (ticket_encrypteddata,
+				(dercursor *) &ed,
+				NULL);
+	assert (enctotlen > enclen);
+	enctotptr = malloc (enctotlen);
+	have_enctotptr = (enctotptr != NULL);
+	if (!have_enctotptr) {
+		kerrno = ENOMEM;
+		goto cleanup;
+	}
+	assert (enctotlen == der_pack (ticket_encrypteddata,
+				(dercursor *) &ed,
+				enctotptr + enctotlen));
+	//
+	// Since all went well, copy the information to the output
+	have_enctotptr = 0;
+	crypt->derlen = enctotlen;
+	crypt->derptr = enctotptr;
+	//
+	// Dump the encrypted data on the screen
+	printf ("\nLengths: plaintext %d, encrypted %d, diff %d\n\n",
+			plain->derlen, crypt->derlen,
+			crypt->derlen - plain->derlen);
+	printf ("-----BEGIN ENCRYPTED KEYDATA HEXDUMP-----\n");
+	int i = 0;
+	while (i < crypt->derlen) {
+		char sep = (((i & 15) != 15) && (i != crypt->derlen - 1))? ' ': '\n';
+		printf ("%02x%c", (uint8_t) crypt->derptr [i++], sep);
+	}
+	printf ("-----END ENCRYPTED KEYDATA HEXDUMP-----\n");
+	//
+	// Cleanup and return kerrno
+cleanup:
+	if (have_enctotptr) {
+		free (enctotptr);
+		have_enctotptr = 0;
+	}
+	if (have_crypt5) {
+		free (crypt5.ciphertext.data);
+		have_crypt5 = 0;
+	}
+	if (have_ktent) {
+		krb5_free_keytab_entry_contents (ctx, &ktent);
+		have_ktent = 0;
+	}
+	if (have_kt) {
+		// Note, the krb5 API says the krb5_kt_default() does not open
+		// the key table, but without closing there are memory leaks
+		krb5_kt_close (ctx, kt);
+		have_kt = 0;
+	}
+	if (have_princ) {
+		krb5_free_principal (ctx, princ);
+		have_princ = 0;
+	}
+	if (kerrno != 0) {
+		const char *errmsg = krb5_get_error_message (ctx, kerrno);
+		fprintf (stderr, "FAILURE encrypting to %s: %s\n",
+					target, errmsg);
+		krb5_free_error_message (ctx, errmsg);
+	}
+	return kerrno;
+}
+
+
 /* Main routine
  */
 int main (int argc, char *argv []) {
@@ -458,21 +606,21 @@ int main (int argc, char *argv []) {
 	krb5_ccache cache;
 	int have_cache = 0;
 	krb5_creds *ticket = NULL;
-	uint8_t *encdata = NULL;
+	dercursor encdata;
 	int have_ticket = 0;
 	int have_encdata = 0;
 	krb5_data *x509;
 	int have_x509 = 0;
 	char *servicename = NULL;
+	int argi = 1;
 
 	//
 	// Parse commandline
-	if (argc > 2) {
+	if (argi >= argc) {
 		fprintf (stderr, "Usage: %s [servicename]\n", argv [0]);
 		exit (1);
-	} else if (argc == 2) {
-		servicename = argv [1];
 	}
+	servicename = argv [argi++];
 
 	//
 	// Allocate and Initialise resources
@@ -501,6 +649,23 @@ int main (int argc, char *argv []) {
 	}
 
 	//
+	// Encrypt EncTicketData for each recipient provided
+	while ((!kerrno) && (argi < argc)) {
+		char *target = argv [argi++];
+		dercursor enckey;
+		assert (have_encdata);
+		kerrno = encrypt_keydata (ctx, target, &encdata, &enckey);
+		if (kerrno != 0) {
+			//ALREADY// fprintf (stderr, "FAILURE constructing encrypted data for %s\n", target);
+			break;
+		}
+		if (errno == 0) {
+			free (enckey.derptr);
+			enckey.derptr = NULL;
+		}
+	}
+
+	//
 	// Error reporting and Cleanup
 	if (kerrno) {
 		const char *errmsg = krb5_get_error_message (ctx, kerrno);
@@ -508,8 +673,8 @@ int main (int argc, char *argv []) {
 		krb5_free_error_message (ctx, errmsg);
 	}
 	if (have_encdata) {
-		free (encdata);
-		encdata = NULL;
+		free (encdata.derptr);
+		encdata.derptr = NULL;
 		have_encdata = 0;
 	}
 	if (have_ticket) {

@@ -63,7 +63,8 @@ The following bits of software are used here:
 
   * [Quick DER](https://github.com/vanrein/quick-der) for encoding/decoding DER structures defined in the [RFC4120](https://tools.ietf.org/html/rfc4120) header file
   * [libndef](https://github.com/haldean/ndef) for reading and writing [NDEF](https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef) structures
-  * [libkrb5](http://web.mit.edu/kerberos/krb5-current/doc/appdev/refs/index.html)
+  * [libkrb5](http://web.mit.edu/kerberos/krb5-current/doc/appdev/refs/index.html) to interface to your MIT Kerberos credentials cache
+  * [hexio](https://github.com/vanrein/hexio) provides tools for the [demorun](demorun.txt): `hexin`, `derdump`
 
 To use it completely, you will also need some hardware and drivers:
 
