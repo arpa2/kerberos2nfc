@@ -257,10 +257,18 @@ And we can look at the contained DER data, and how it is structured:
 
 Note how this dump follows the ASN.1 specs, thanks to the Quick DER library:
 
-    EncryptedData   ::= SEQUENCE {
-            etype   [0] Int32 -- EncryptionType --,
-            kvno    [1] UInt32 OPTIONAL,
-            cipher  [2] OCTET STRING -- ciphertext
+    EncTicketPart   ::= [APPLICATION 3] SEQUENCE {
+            flags                   [0] TicketFlags,
+            key                     [1] EncryptionKey,
+            crealm                  [2] Realm,
+            cname                   [3] PrincipalName,
+            transited               [4] TransitedEncoding,
+            authtime                [5] KerberosTime,
+            starttime               [6] KerberosTime OPTIONAL,
+            endtime                 [7] KerberosTime,
+            renew-till              [8] KerberosTime OPTIONAL,
+            caddr                   [9] HostAddresses OPTIONAL,
+            authorization-data      [10] AuthorizationData OPTIONAL
     }
 
 There is no authorization-data in the ticket cache, so it is absent; there may
