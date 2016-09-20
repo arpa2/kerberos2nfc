@@ -5,7 +5,7 @@
 > of distributing credentials from a well-protected home/office desktop
 > to a more hostile mobile environment.  It can be an easily understood
 > user interface action to swipe an NFC Tag again, to reinforce or renew
-> a credential or renew it, or to switch identity.*
+> a credential, or to switch identity.*
 
 **See also:** [Beaming Credentials to Kerberos](http://nfc.arpa2.net/kerb-ticks.html)
 
@@ -35,15 +35,16 @@ Or, a realm-crossover TGT could be somewhere in between.
 
 To produce the records, call
 
-    ticket2ndef service/host.name@MYREALM
+    ticket2ndef service/host.name@MYREALM 3123456789@TEL
 
-or if the current user's TGT suffices, then instead call
-
-    ticket2ndef
-
-In both cases, the output shows the NDEF information (in hex, plus it will dump
-a lot more).  The NDEF information holds the two records for the `Ticket` and
-adjoining `EncTicketData`, the latter of which is encrypted to (TODO).
+The output shows the NDEF information (in hex, plus it will dump a lot more).
+The NDEF information holds the two records for the `Ticket` and
+adjoining `EncTicketData`, the latter of which is encrypted to a keytab
+entry for, in this case, `3123456789@TEL`.  (Note how `TEL` is a top-level
+domain that will never support Kerberos, so it is a reasonable name for a
+pseudo-realm; the part before `@TEL` would be the recipient's e.164 phone
+number, starting with the country code but dropping the initial `+` to
+indicate international predial.  Yes, you could use this naming scheme too!)
 
 If you passed the NDEF data to an NFC utility that operates a reader/writer,
 you can program it into any sufficiently large NFC Tag.  The resulting tag
@@ -64,7 +65,7 @@ The following bits of software are used here:
   * [Quick DER](https://github.com/vanrein/quick-der) for encoding/decoding DER structures defined in the [RFC4120](https://tools.ietf.org/html/rfc4120) header file
   * [libkrb5](http://web.mit.edu/kerberos/krb5-current/doc/appdev/refs/index.html) to interface to your MIT Kerberos credentials cache
   * [hexio](https://github.com/vanrein/hexio) provides tools for the [demorun](demorun.txt): `hexin`, `derdump`
-  * Optional: [nfcpy/ndeflib](https://github.com/nfcpy/ndeflib) to test the NDEF  output
+  * [nfcpy/ndeflib](https://github.com/nfcpy/ndeflib) can be used to test the NDEF  output
 
 To use it completely, you will also need some hardware and drivers:
 
