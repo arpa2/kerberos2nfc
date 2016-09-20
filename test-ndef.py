@@ -16,8 +16,7 @@ class KerberosTicket (ndef.Record):
 	"""This class handles NDEF records holding Kerberos tickets.
 	"""
 
-	# drop urn:nfc:ext: as per spec
-	_type = 'arpa2.org:krb5:ticket'
+	_type = 'urn:nfc:ext:arpa2.org:krb5:ticket'
 
 	def __init__ (self, tkt):
 		self.ticket = tkt
@@ -39,8 +38,7 @@ class KerberosEncTicketPartKeytab (ndef.Record):
 	   structures, encrypted with a key found in a keytab.
 	"""
 
-	# drop urn:nfc:ext: as per spec
-	_type = 'arpa2.org:krb5:encticketpart:keytab'
+	_type = 'urn:nfc:ext:arpa2.org:krb5:encticketpart:keytab'
 
 	def __init__ (self, etp):
 		self.encticketpart = etp

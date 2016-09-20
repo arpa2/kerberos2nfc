@@ -51,6 +51,7 @@ Proceed to login to Kerberos,
     Password for rick@ARPA2.NET: 
     
     shell$ klist 
+
     Ticket cache: FILE:/tmp/krb5cc_0
     Default principal: rick@ARPA2.NET
     
@@ -193,6 +194,7 @@ fulfil the requested service; this is the exported service ticket:
 You can pickup the `KEYDATA` to see its contents (including a key!) with
 
     shell$ hexin /tmp/keydata.der
+
     00000000> 63 81 b7 30 81 b4 a0 04 03 02 00 00 a1 2b 30 29
     00000010> a0 03 02 01 12 a1 22 04 20 fb 52 ce 29 b4 82 92
     00000020> 78 a3 ce db 8c a8 7c 0d 13 dc 92 37 d5 10 1f 3d
@@ -209,11 +211,11 @@ You can pickup the `KEYDATA` to see its contents (including a key!) with
 
 Note how this dump follows the ASN.1 specs, thanks to the Quick DER library:
 
-   EncryptedData   ::= SEQUENCE {
-           etype   [0] Int32 -- EncryptionType --,
-           kvno    [1] UInt32 OPTIONAL,
-           cipher  [2] OCTET STRING -- ciphertext
-   }
+    EncryptedData   ::= SEQUENCE {
+            etype   [0] Int32 -- EncryptionType --,
+            kvno    [1] UInt32 OPTIONAL,
+            cipher  [2] OCTET STRING -- ciphertext
+    }
 
 There is no authorization-data in the ticket cache, so it is absent; there may
 be client address data (caddr) in the ticket, not shown in this dump but it
@@ -225,6 +227,7 @@ way with a simple Python script which, somewhat importantly, imports an
 external ndef library for Python that has already been tested thoroughtly:
 
     shell$ hexin > /tmp/tag.ndef
+
     00000000> 83 15 00 00 01 50 61 72 70 61 32 2e 6f 72 67 3a
     00000010> 6b 72 62 35 3a 74 69 63 6b 65 74 61 82 01 4c 30
     00000020> 82 01 48 a0 03 02 01 05 a1 0b 1b 09 41 52 50 41
@@ -265,13 +268,14 @@ external ndef library for Python that has already been tested thoroughtly:
     00000250> 66 c6 55 78 32 14 75 1e 9d df 05 75 7f 87 40 82
     00000260> 54 76 7e 81 c8 38 0b 23 d8 86 97 50 f1 92 4f 7f
     00000270> 3e 4c c3 89 46 da ee 56 98 a9
-    0000027a>
+    0000027a> ^D
 
 Then we can pass the binary NDEF file in `/tmp/tag.ndef` into the test script
 that implements special type support for the URI types that we introduced
 here, and that it does indeed recognise:
 
     shell$ ./test-ndef.py /tmp/tag.ndef
+
     Record length 336 and type <class '__main__.KerberosTicket'>
     Record length 233 and type <class '__main__.KerberosEncTicketPartKeytab'>
 
@@ -279,6 +283,7 @@ Finally, quite important as well, we should know how many bytes we have
 consumed...
 
     shell$ ls -l /tmp/tag.ndef
+
     -rw-r--r-- 1 user user 634 Sep 20 18:26 /tmp/tag.ndef
 
 This fits well within large static tags we found to be popular and widely

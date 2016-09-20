@@ -59,7 +59,7 @@ const derwalk ticket_encrypteddata [] = {
  */
 dercursor der_empty_sequence = {
 	.derlen = 2,
-	.derptr = "\x03\x00",
+	.derptr = "\x30\x00",
 };
 
 
@@ -624,7 +624,7 @@ krb5_error_code ndef_record (dercursor *ndef, dercursor *payload, char *uritype,
 	dercursor tmp;
 	//
 	// Construct the flag field and size fields in the NDEF header
-	hdr [pos++] = 0x03 |
+	hdr [pos++] = 0x04 |
 			(first         ? 0x80 : 0x00) |
 			(last          ? 0x40 : 0x00) |
 			(shorty        ? 0x10 : 0x00) |
