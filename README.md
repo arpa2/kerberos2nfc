@@ -2,10 +2,10 @@
 
 > *These tools are used to extract a Ticket and stick it on an NFC Tag.
 > That sounds silly, but it really is a pragmatic (and secure) manner
-> of distributing credentials from a properly protected desktop or laptop
-> to a much more dangerous mobile system.  Moreover, tags can easily be
-> swiped again, to reinforce a credential or renew it or, perhaps, switch
-> identity.*
+> of distributing credentials from a well-protected home/office desktop
+> to a more hostile mobile environment.  It can be an easily understood
+> user interface action to swipe an NFC Tag again, to reinforce or renew
+> a credential or renew it, or to switch identity.*
 
 **See also:** [Beaming Credentials to Kerberos](http://nfc.arpa2.net/kerb-ticks.html)
 
@@ -62,14 +62,14 @@ harming the end-user experience.
 The following bits of software are used here:
 
   * [Quick DER](https://github.com/vanrein/quick-der) for encoding/decoding DER structures defined in the [RFC4120](https://tools.ietf.org/html/rfc4120) header file
-  * [libndef](https://github.com/haldean/ndef) for reading and writing [NDEF](https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef) structures
   * [libkrb5](http://web.mit.edu/kerberos/krb5-current/doc/appdev/refs/index.html) to interface to your MIT Kerberos credentials cache
   * [hexio](https://github.com/vanrein/hexio) provides tools for the [demorun](demorun.txt): `hexin`, `derdump`
+  * Optional: [nfcpy/ndeflib](https://github.com/nfcpy/ndeflib) to test the NDEF  output
 
 To use it completely, you will also need some hardware and drivers:
 
   * An NFC reader/writer; perhaps your smart phone or a [PN532 module](https://www.aliexpress.com/wholesale?catId=0&initiative_id=SB_20160915080103&SearchText=pn532+module)
-  * Tools to exchange NDEF objects with your NFC reader/writer
+  * Tools to exchange NDEF objects with your NFC reader/writer; perhaps [nfcpy](https://github.com/nfcpy/nfcpy)
   * Suitable NFC Tags; perhaps based on [NTAG216](http://www.nxp.com/products/identification-and-security/smart-label-and-tag-ics/ntag/nfc-forum-type-2-tag-compliant-ic-with-144-504-888-bytes-user-memory:NTAG213_215_216?)
 
 To make the Kerberos tickets actually import to your smart phone, you should
