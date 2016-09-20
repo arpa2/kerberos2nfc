@@ -743,7 +743,7 @@ int main (int argc, char *argv []) {
 		last = (argi == argc);  // This can happen for bare tickets
 		tkt.derlen = ticket->ticket.length;
 		tkt.derptr = ticket->ticket.data;
-		kerrno = ndef_record (&ndef, &tkt, "urn:nfc:ext:arpa2.org:krb5:ticket", NULL, first, last);
+		kerrno = ndef_record (&ndef, &tkt, /* urn:nfc:ext: */ "arpa2.org:krb5:ticket", NULL, first, last);
 		first = 0;
 	}
 
@@ -771,7 +771,7 @@ int main (int argc, char *argv []) {
 			// Ship out to NDEF: EncTicketPart
 			assert (enckey.derptr != NULL);
 			last = (argi == argc);  // This can happen for bare tickets
-			kerrno = ndef_record (&ndef, &enckey, "urn:nfc:ext:arpa2.org:krb5:encticketpart:keytab", NULL, first, last);
+			kerrno = ndef_record (&ndef, &enckey, /* urn:nfc:ext: */ "arpa2.org:krb5:encticketpart:keytab", NULL, first, last);
 			first = 0;
 			//
 			// Cleanup for this loop passthrough
