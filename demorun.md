@@ -193,7 +193,7 @@ fulfil the requested service; this is the exported service ticket:
 
 You can pickup the `KEYDATA` to see its contents (including a key!) with
 
-    shell$ hexin /tmp/keydata.der
+    shell$ hexin > /tmp/keydata.der
 
     00000000> 63 81 b7 30 81 b4 a0 04 03 02 00 00 a1 2b 30 29
     00000010> a0 03 02 01 12 a1 22 04 20 fb 52 ce 29 b4 82 92
@@ -208,6 +208,52 @@ You can pickup the `KEYDATA` to see its contents (including a key!) with
     000000a0> 18 18 54 75 65 20 53 65 70 20 32 30 20 31 38 3a
     000000b0> 32 37 3a 32 30 20 32 30 31 36
     000000ba> ^D
+
+And we can look at the contained DER data, and how it is structured:
+
+    shell$ derdump /tmp/keydata.der
+
+    [APPLICATION 3]: tag 0x63 ##183 @0 ^0, Application, Constructed
+      SEQUENCE (OF): tag 0x30 ##180 @3 ^1, Universal, Constructed
+        [0]: tag 0xa0 #4 @6 ^2, Contextual, Constructed
+          BITSTRING: tag 0x03 #2 @8 ^3, Universal, Primitive
+             00 00 == ".."
+        [1]: tag 0xa1 #43 @12 ^2, Contextual, Constructed
+          SEQUENCE (OF): tag 0x30 #41 @14 ^3, Universal, Constructed
+            [0]: tag 0xa0 #3 @16 ^4, Contextual, Constructed
+              INTEGER: tag 0x02 #1 @18 ^5, Universal, Primitive
+                 12 == 18
+            [1]: tag 0xa1 #34 @21 ^4, Contextual, Constructed
+              OCTETSTRING: tag 0x04 #32 @23 ^5, Universal, Primitive
+                 fb 52 ce 29 b4 82 92 78 a3 ce db 8c a8 7c 0d 13 dc 92 37 d5 10 1f 3d 9c d2 7f b5 b4 0a 96 8c d1 == ".R.)...x.....|....7...=........."
+        [2]: tag 0xa2 #11 @57 ^2, Contextual, Constructed
+          GeneralString: tag 0x1b #9 @59 ^3, Universal, Primitive
+             41 52 50 41 32 2e 4e 45 54 == "ARPA2.NET"
+        [3]: tag 0xa3 #17 @70 ^2, Contextual, Constructed
+          SEQUENCE (OF): tag 0x30 #15 @72 ^3, Universal, Constructed
+            [0]: tag 0xa0 #3 @74 ^4, Contextual, Constructed
+              INTEGER: tag 0x02 #1 @76 ^5, Universal, Primitive
+                 01 == 1
+            [1]: tag 0xa1 #8 @79 ^4, Contextual, Constructed
+              SEQUENCE (OF): tag 0x30 #6 @81 ^5, Universal, Constructed
+                GeneralString: tag 0x1b #4 @83 ^6, Universal, Primitive
+                   72 69 63 6b == "rick"
+        [4]: tag 0xa4 #11 @89 ^2, Contextual, Constructed
+          SEQUENCE (OF): tag 0x30 #9 @91 ^3, Universal, Constructed
+            [0]: tag 0xa0 #3 @93 ^4, Contextual, Constructed
+              INTEGER: tag 0x02 #1 @95 ^5, Universal, Primitive
+                 ff == 255
+            [1]: tag 0xa1 #2 @98 ^4, Contextual, Constructed
+              OCTETSTRING: tag 0x04 #0 @100 ^5, Universal, Primitive
+        [5]: tag 0xa5 #26 @102 ^2, Contextual, Constructed
+          GeneralizedTime: tag 0x18 #24 @104 ^3, Universal, Primitive
+             54 75 65 20 53 65 70 20 32 30 20 31 38 3a 31 32 3a 32 32 20 32 30 31 36 == "Tue Sep 20 18:12:22 2016"
+        [6]: tag 0xa6 #26 @130 ^2, Contextual, Constructed
+          GeneralizedTime: tag 0x18 #24 @132 ^3, Universal, Primitive
+             54 75 65 20 53 65 70 20 32 30 20 31 38 3a 31 33 3a 34 31 20 32 30 31 36 == "Tue Sep 20 18:13:41 2016"
+        [7]: tag 0xa7 #26 @158 ^2, Contextual, Constructed
+          GeneralizedTime: tag 0x18 #24 @160 ^3, Universal, Primitive
+             54 75 65 20 53 65 70 20 32 30 20 31 38 3a 32 37 3a 32 30 20 32 30 31 36 == "Tue Sep 20 18:27:20 2016"
 
 Note how this dump follows the ASN.1 specs, thanks to the Quick DER library:
 
