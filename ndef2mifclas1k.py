@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# ndef2mfd.py -- Place an NDEF file in a Mifare card
+# ndef2mfd.py -- Place an NDEF file in a Mifare Classic 1k card
 #
 # For now, we're only supporting Mifare Classic 1k or S50 cards.  Their binary
 # content is read and written by libnfc utility nfc-mfclassic using a dump

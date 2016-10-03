@@ -697,7 +697,7 @@ int main (int argc, char *argv []) {
 
 	//
 	// Parse commandline; for now, skip options, if any, until "--"
-	if (*argv [argi] == '-') {
+	if ((argc > argi) && (*argv [argi] == '-')) {
 		do {
 			if (0 == strcmp (argv [argi], "--")) {
 				break;
